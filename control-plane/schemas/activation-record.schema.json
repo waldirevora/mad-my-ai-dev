@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mad.local/schemas/activation-record-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "trusted_uid", "trusted_gid", "trusted_system_uid", "expected_mad_version", "release_root",
+    "release_digest", "inventory_digest", "native_launcher_path", "native_launcher_sha256",
+    "python_runtime_root", "python_executable", "python_runtime_digest", "python_runtime_inventory_digest",
+    "state_root", "registry_root", "human_approval_registry_root", "cache_root",
+    "controller_key_path", "codex_home", "tools", "orka"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "trusted_uid": {"type": "integer", "minimum": 0},
+    "trusted_gid": {"type": "integer", "minimum": 0},
+    "trusted_system_uid": {"const": 0},
+    "expected_mad_version": {"const": "2.0.0"},
+    "release_root": {"$ref": "#/$defs/absolutePath"},
+    "release_digest": {"$ref": "#/$defs/sha256"},
+    "inventory_digest": {"$ref": "#/$defs/sha256"},
+    "native_launcher_path": {"$ref": "#/$defs/absolutePath"},
+    "native_launcher_sha256": {"$ref": "#/$defs/sha256"},
+    "python_runtime_root": {"$ref": "#/$defs/absolutePath"},
+    "python_executable": {"$ref": "#/$defs/absolutePath"},
+    "python_runtime_digest": {"$ref": "#/$defs/sha256"},
+    "python_runtime_inventory_digest": {"$ref": "#/$defs/sha256"},
+    "state_root": {"$ref": "#/$defs/absolutePath"},
+    "registry_root": {"$ref": "#/$defs/absolutePath"},
+    "human_approval_registry_root": {"$ref": "#/$defs/absolutePath"},
+    "cache_root": {"$ref": "#/$defs/absolutePath"},
+    "controller_key_path": {"$ref": "#/$defs/absolutePath"},
+    "codex_home": {"$ref": "#/$defs/absolutePath"},
+    "tools": {
+      "type": "object", "additionalProperties": false,
+      "required": ["git", "gh", "python3", "codex", "bwrap"],
+      "properties": {
+        "git": {"$ref": "#/$defs/tool"},
+        "gh": {"$ref": "#/$defs/tool"},
+        "python3": {"$ref": "#/$defs/tool"},
+        "codex": {"$ref": "#/$defs/tool"},
+        "bwrap": {"$ref": "#/$defs/tool"}
+      }
+    },
+    "orka": {
+      "type": "object", "additionalProperties": false,
+      "required": ["root", "version", "digest", "inventory_digest", "uid", "gid"],
+      "properties": {
+        "root": {"$ref": "#/$defs/absolutePath"},
+        "version": {"const": "1.8.0"},
+        "digest": {"$ref": "#/$defs/sha256"},
+        "inventory_digest": {"$ref": "#/$defs/sha256"},
+        "uid": {"type": "integer", "minimum": 0},
+        "gid": {"type": "integer", "minimum": 0}
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "absolutePath": {"type": "string", "pattern": "^/", "minLength": 2, "maxLength": 4096},
+    "tool": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "sha256", "uid", "gid", "root"],
+      "properties": {
+        "path": {"$ref": "#/$defs/absolutePath"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "uid": {"type": "integer", "minimum": 0},
+        "gid": {"type": "integer", "minimum": 0},
+        "root": {"$ref": "#/$defs/absolutePath"}
+      }
+    }
+  }
+}

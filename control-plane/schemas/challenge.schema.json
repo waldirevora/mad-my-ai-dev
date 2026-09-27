@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mad.local/schemas/challenge-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "kind", "stage", "run_id", "nonce", "prepared_at",
+    "expires_at", "repository", "source", "target", "merge_base_sha", "pr",
+    "diff", "changed_paths_sha256", "classification", "risk_reasons",
+    "trusted_policy", "candidate_policy", "trusted_config", "candidate_config",
+    "control_plane", "orka", "effective_policy_sha256", "qa_plan_sha256", "required_human_approval",
+    "challenge_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "mad-challenge"},
+    "stage": {"enum": ["pre-pr", "pre-merge"]},
+    "run_id": {"type": "string", "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$"},
+    "nonce": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "prepared_at": {"type": "integer", "minimum": 0},
+    "expires_at": {"type": "integer", "minimum": 0},
+    "repository": {"$ref": "#/$defs/repository"},
+    "source": {"$ref": "#/$defs/refIdentity"},
+    "target": {"$ref": "#/$defs/refIdentity"},
+    "merge_base_sha": {"$ref": "#/$defs/objectId"},
+    "pr": {"type": ["integer", "null"], "minimum": 1},
+    "diff": {"$ref": "#/$defs/byteDigest"},
+    "changed_paths_sha256": {"$ref": "#/$defs/sha256"},
+    "classification": {"enum": ["genesis", "control-plane/high-risk", "code", "documentation-only"]},
+    "risk_reasons": {"type": "array", "maxItems": 256, "items": {"type": "string", "minLength": 1, "maxLength": 500}},
+    "trusted_policy": {"$ref": "#/$defs/presenceDigest"},
+    "candidate_policy": {"$ref": "#/$defs/presenceDigest"},
+    "trusted_config": {"$ref": "#/$defs/presenceDigest"},
+    "candidate_config": {"$ref": "#/$defs/presenceDigest"},
+    "control_plane": {"$ref": "#/$defs/release"},
+    "orka": {"$ref": "#/$defs/release"},
+    "effective_policy_sha256": {"$ref": "#/$defs/sha256"},
+    "qa_plan_sha256": {"$ref": "#/$defs/sha256"},
+    "required_human_approval": {"type": "boolean"},
+    "challenge_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"stage": {"const": "pre-pr"}}},
+      "then": {"properties": {"pr": {"type": "null"}}},
+      "else": {"properties": {"pr": {"type": "integer", "minimum": 1}}}
+    },
+    {
+      "if": {"properties": {"classification": {"enum": ["genesis", "control-plane/high-risk"]}}},
+      "then": {"properties": {"required_human_approval": {"const": true}}},
+      "else": {"properties": {"required_human_approval": {"const": false}}}
+    },
+    {
+      "if": {"properties": {"classification": {"const": "genesis"}}},
+      "then": {
+        "properties": {
+          "trusted_policy": {"properties": {"present": {"const": false}, "sha256": {"type": "null"}, "byte_length": {"type": "null"}}},
+          "trusted_config": {"properties": {"present": {"const": false}, "sha256": {"type": "null"}, "byte_length": {"type": "null"}}},
+          "candidate_policy": {"properties": {"present": {"const": true}}},
+          "candidate_config": {"properties": {"present": {"const": true}}}
+        }
+      },
+      "else": {
+        "properties": {
+          "trusted_policy": {"properties": {"present": {"const": true}}},
+          "trusted_config": {"properties": {"present": {"const": true}}},
+          "candidate_policy": {"properties": {"present": {"const": true}}},
+          "candidate_config": {"properties": {"present": {"const": true}}}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "objectId": {"type": "string", "pattern": "^[a-f0-9]{40,64}$"},
+    "byteDigest": {
+      "type": "object", "additionalProperties": false,
+      "required": ["algorithm", "sha256", "byte_length"],
+      "properties": {
+        "algorithm": {"const": "sha256"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "byte_length": {"type": "integer", "minimum": 0}
+      }
+    },
+    "presenceDigest": {
+      "type": "object", "additionalProperties": false,
+      "required": ["present", "sha256", "byte_length"],
+      "properties": {
+        "present": {"type": "boolean"},
+        "sha256": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "byte_length": {"type": ["integer", "null"], "minimum": 0}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"present": {"const": true}}},
+          "then": {"properties": {"sha256": {"$ref": "#/$defs/sha256"}, "byte_length": {"type": "integer", "minimum": 0}}},
+          "else": {"properties": {"sha256": {"type": "null"}, "byte_length": {"type": "null"}}}
+        }
+      ]
+    },
+    "repository": {
+      "type": "object", "additionalProperties": false,
+      "required": ["host", "database_id", "name_with_owner", "registered_remote"],
+      "properties": {
+        "host": {"type": "string", "minLength": 1, "maxLength": 253},
+        "database_id": {"type": "integer", "minimum": 1},
+        "name_with_owner": {"type": "string", "pattern": "^[^/\\s]+/[^/\\s]+$", "maxLength": 200},
+        "registered_remote": {"type": "string", "minLength": 1, "maxLength": 1000}
+      }
+    },
+    "refIdentity": {
+      "type": "object", "additionalProperties": false,
+      "required": ["repository_id", "branch", "sha"],
+      "properties": {
+        "repository_id": {"type": "integer", "minimum": 1},
+        "branch": {"type": "string", "minLength": 1, "maxLength": 255},
+        "sha": {"$ref": "#/$defs/objectId"}
+      }
+    },
+    "release": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "version", "digest"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1, "maxLength": 100},
+        "version": {"type": "string", "minLength": 1, "maxLength": 100},
+        "digest": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

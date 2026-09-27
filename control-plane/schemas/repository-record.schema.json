@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mad.local/schemas/repository-record-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "host", "database_id", "name_with_owner", "registered_remote",
+    "target_branch", "active_release", "codex", "orka", "human_approvers"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "host": {"type": "string", "minLength": 1, "maxLength": 253},
+    "database_id": {"type": "integer", "minimum": 1},
+    "name_with_owner": {"type": "string", "pattern": "^[^/\\s]+/[^/\\s]+$", "maxLength": 200},
+    "registered_remote": {"type": "string", "minLength": 1, "maxLength": 1000},
+    "target_branch": {"type": "string", "minLength": 1, "maxLength": 255},
+    "active_release": {
+      "type": "object", "additionalProperties": false,
+      "required": ["version", "digest", "inventory_digest", "root"],
+      "properties": {
+        "version": {"type": "string", "minLength": 1, "maxLength": 100},
+        "digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "inventory_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "root": {"type": "string", "minLength": 1, "maxLength": 2000}
+      }
+    },
+    "codex": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "sha256", "home"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1, "maxLength": 2000},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "home": {"type": "string", "minLength": 1, "maxLength": 2000}
+      }
+    },
+    "orka": {
+      "type": "object", "additionalProperties": false,
+      "required": ["root", "version", "digest", "inventory_digest"],
+      "properties": {
+        "root": {"type": "string", "minLength": 1, "maxLength": 2000},
+        "version": {"const": "1.8.0"},
+        "digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "inventory_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "human_approvers": {
+      "type": "array", "maxItems": 32,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["subject", "key_id", "ed25519_public_key"],
+        "properties": {
+          "subject": {"type": "string", "minLength": 1, "maxLength": 300},
+          "key_id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]{1,200}$"},
+          "ed25519_public_key": {"type": "string", "pattern": "^[A-Za-z0-9_-]{43}$"}
+        }
+      }
+    }
+  }
+}

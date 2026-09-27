@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mad.local/schemas/machine-approval-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "kind", "approval_id", "operation", "run_id", "nonce",
+    "repository_id", "source_sha", "target_sha", "diff_sha256", "policy_sha256",
+    "control_plane_sha256", "challenge_sha256", "qa_evidence_sha256",
+    "attestation_sha256", "human_approval_sha256", "issued_at", "expires_at",
+    "state", "signature"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "mad-machine-approval"},
+    "approval_id": {"type": "string", "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$"},
+    "operation": {"enum": ["create-pr", "merge"]},
+    "run_id": {"type": "string", "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$"},
+    "nonce": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "repository_id": {"type": "integer", "minimum": 1},
+    "source_sha": {"$ref": "#/$defs/objectId"},
+    "target_sha": {"$ref": "#/$defs/objectId"},
+    "diff_sha256": {"$ref": "#/$defs/sha256"},
+    "policy_sha256": {"$ref": "#/$defs/sha256"},
+    "control_plane_sha256": {"$ref": "#/$defs/sha256"},
+    "challenge_sha256": {"$ref": "#/$defs/sha256"},
+    "qa_evidence_sha256": {"$ref": "#/$defs/sha256"},
+    "attestation_sha256": {"$ref": "#/$defs/sha256"},
+    "human_approval_sha256": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+    "issued_at": {"type": "integer", "minimum": 0},
+    "expires_at": {"type": "integer", "minimum": 0},
+    "state": {"enum": ["approved", "consuming", "consumed", "indeterminate", "revoked"]},
+    "signature": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "objectId": {"type": "string", "pattern": "^[a-f0-9]{40,64}$"}
+  }
+}
