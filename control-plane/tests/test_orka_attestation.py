@@ -216,6 +216,30 @@ def test_invalid_schema_rejected(specimen, alter):
         _verify(specimen, document)
 
 
+@pytest.mark.parametrize("path", [
+    ("attestation_id",),
+    ("nonce",),
+    ("source", "sha"),
+    ("target", "sha"),
+    ("challenge_sha256",),
+    ("policy_sha256",),
+    ("result_sha256",),
+    ("orka", "runtime_sha256"),
+    ("orka", "ledger_sha256"),
+    ("orka", "permit_sha256"),
+    ("orka", "receipt_sha256"),
+    ("signature", "value"),
+])
+def test_schema_rejects_trailing_newline_in_fixed_length_values(specimen, path):
+    document = copy.deepcopy(specimen[0])
+    field = document
+    for segment in path[:-1]:
+        field = field[segment]
+    field[path[-1]] += "\n"
+    with pytest.raises(SchemaError):
+        specimen[2].schemas.validate("orka-review-attestation", document)
+
+
 def test_bad_cryptographic_signature_encoding(specimen):
     document = copy.deepcopy(specimen[0])
     document["signature"]["value"] = "A" * 86

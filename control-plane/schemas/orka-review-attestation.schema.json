@@ -36,6 +36,7 @@
     },
     "attestation_id": {
       "type": "string",
+      "maxLength": 36,
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
     },
     "issuer": {
@@ -68,6 +69,7 @@
     },
     "nonce": {
       "type": "string",
+      "maxLength": 64,
       "pattern": "^[0-9a-f]{64}$"
     },
     "repository": {
@@ -131,6 +133,7 @@
         },
         "sha": {
           "type": "string",
+          "maxLength": 40,
           "pattern": "^[0-9a-f]{40}$"
         }
       }
@@ -155,16 +158,19 @@
         },
         "sha": {
           "type": "string",
+          "maxLength": 40,
           "pattern": "^[0-9a-f]{40}$"
         }
       }
     },
     "challenge_sha256": {
       "type": "string",
+      "maxLength": 64,
       "pattern": "^[0-9a-f]{64}$"
     },
     "policy_sha256": {
       "type": "string",
+      "maxLength": 64,
       "pattern": "^[0-9a-f]{64}$"
     },
     "review_generation": {
@@ -223,6 +229,7 @@
     },
     "result_sha256": {
       "type": "string",
+      "maxLength": 64,
       "pattern": "^[0-9a-f]{64}$"
     },
     "orka": {
@@ -249,18 +256,22 @@
         },
         "runtime_sha256": {
           "type": "string",
+          "maxLength": 64,
           "pattern": "^[0-9a-f]{64}$"
         },
         "ledger_sha256": {
           "type": "string",
+          "maxLength": 64,
           "pattern": "^[0-9a-f]{64}$"
         },
         "permit_sha256": {
           "type": "string",
+          "maxLength": 64,
           "pattern": "^[0-9a-f]{64}$"
         },
         "receipt_sha256": {
           "type": "string",
+          "maxLength": 64,
           "pattern": "^[0-9a-f]{64}$"
         }
       }
@@ -284,6 +295,7 @@
         },
         "value": {
           "type": "string",
+          "maxLength": 86,
           "pattern": "^[A-Za-z0-9_-]{86}$"
         }
       }
