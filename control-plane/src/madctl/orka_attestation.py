@@ -16,7 +16,7 @@ from typing import Any, Mapping
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
-from .canonical import canonical_bytes, canonical_sha256, sha256_bytes, verify_canonical_artifact
+from .canonical import canonical_bytes, canonical_sha256, verify_canonical_artifact
 from .errors import EvidenceError
 from .schemas import SchemaRegistry
 
@@ -78,7 +78,7 @@ class OrkaReviewAttestationVerifier:
         now: int,
         raw: bytes | None = None,
     ) -> str:
-        """Return the attestation digest only if all verification checks pass.
+        """Return SHA-256 of canonical JSON, whether or not raw bytes are provided.
 
         ``expected`` MUST come from protected state and authenticated provider
         capture, not from ``attestation`` or an agent-controlled ledger. All
@@ -128,4 +128,4 @@ class OrkaReviewAttestationVerifier:
             raise EvidenceError("review attestation reviewer role does not match gate")
         if attestation["verdict"] != "PASS":
             raise EvidenceError("review attestation verdict is not PASS")
-        return sha256_bytes(raw) if raw is not None else canonical_sha256(attestation)
+        return canonical_sha256(attestation)

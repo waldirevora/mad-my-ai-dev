@@ -88,10 +88,13 @@ def _verify(specimen, document=None, expected=None, *, now=1200, raw=None):
     )
 
 
-def test_valid_signature_and_canonical_file(specimen):
+def test_canonical_digest_is_identical_with_and_without_raw(specimen):
     document = specimen[0]
     raw = canonical_bytes(document) + b"\n"
-    assert _verify(specimen, raw=raw) == sha256_bytes(raw)
+    expected_digest = sha256_bytes(canonical_bytes(document))
+    assert _verify(specimen) == expected_digest
+    assert _verify(specimen, raw=raw) == expected_digest
+    assert sha256_bytes(raw) != expected_digest
 
 
 @pytest.mark.parametrize("field,value", [
