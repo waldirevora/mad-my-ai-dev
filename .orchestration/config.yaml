@@ -1,0 +1,62 @@
+schema_version: 1
+minimum_orka_version: "1.8.0"
+
+worker_trust_profile: cooperative-worker
+
+# First MAD phase: Codex desktop/subscription only. No API routes or credentials.
+llm:
+  execution: desktop
+  provider: openai
+  model: ""
+  effort: ""
+  fallback: none
+
+# The repository currently has only main. It temporarily serves both roles.
+integration_branch: main
+production_branch: main
+
+max_lane_relaunches: 2
+max_worker_continuations: 6
+max_worker_idle_seconds: 1800
+max_worker_lifetime_seconds: 14400
+
+merge_to_integration: squash
+merge_to_production: squash
+
+# The controller runs QA from the trusted target policy. This repository entry
+# is only Orka's declarative project self-check and is not gate authority.
+ci_checks_integration: []
+ci_checks_production: []
+self_check:
+  - name: mad-v2-control-plane
+    run: bash control-plane/tests/run.sh
+gate_log_lines: 80
+verification: []
+
+gates:
+  - code-review
+  - security-review
+
+max_design_rounds: 5
+max_repair_cycles: 2
+review_ledger_dir: .orchestration/.review-ledger
+
+security_required_when:
+  - always
+security_required_source_branches: []
+security_required_target_branches: []
+
+ticket:
+  kind: none
+  project: ""
+
+concurrency_max: 1
+max_unmerged_prs: 1
+pr_drain_first: true
+max_heavy_processes: 1
+
+worktree_base: .orchestration/worktrees
+worktree_cleanup: manual
+
+rules_docs:
+  - AGENTS.md

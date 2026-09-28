@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "target_branch": "main",
+  "merge_strategy": "squash",
+  "draft_pr_allowed": false,
+  "challenge_ttl_seconds": {"pre-pr": 900, "pre-merge": 300},
+  "machine_approval_ttl_seconds": {"create-pr": 600, "merge": 180},
+  "maximum_clock_skew_seconds": 60,
+  "documentation_paths": ["README.md", "docs/"],
+  "protected_paths": [
+    "AGENTS.md", ".codex/", ".github/", ".mad/", ".orchestration/",
+    "control-plane/", "policies/", "schemas/", "scripts/", "tests/"
+  ],
+  "build_configuration_names": [
+    "Dockerfile", "Makefile", "setup.py", "setup.cfg", "package.json",
+    "package-lock.json", "pyproject.toml", "requirements.txt", "Pipfile",
+    "Pipfile.lock", "poetry.lock", "uv.lock", "pdm.lock", "tox.ini"
+  ],
+  "qa_plans": {
+    "genesis": [
+      {"id": "trusted-source-invariants", "tool": "builtin", "args": ["mad-v2-source-invariants"], "timeout_seconds": 10},
+      {"id": "mad-v2-tests", "tool": "python3", "args": ["-m", "unittest", "discover", "-s", "control-plane/tests", "-p", "test_*.py", "-v"], "timeout_seconds": 180}
+    ],
+    "control-plane/high-risk": [
+      {"id": "trusted-source-invariants", "tool": "builtin", "args": ["mad-v2-source-invariants"], "timeout_seconds": 10},
+      {"id": "mad-v2-tests", "tool": "python3", "args": ["-m", "unittest", "discover", "-s", "control-plane/tests", "-p", "test_*.py", "-v"], "timeout_seconds": 180}
+    ],
+    "code": [
+      {"id": "trusted-source-invariants", "tool": "builtin", "args": ["mad-v2-source-invariants"], "timeout_seconds": 10},
+      {"id": "mad-v2-tests", "tool": "python3", "args": ["-m", "unittest", "discover", "-s", "control-plane/tests", "-p", "test_*.py", "-v"], "timeout_seconds": 180}
+    ],
+    "documentation-only": [
+      {"id": "diff-integrity", "tool": "builtin", "args": ["diff-integrity"], "timeout_seconds": 10}
+    ]
+  }
+}

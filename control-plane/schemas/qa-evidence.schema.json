@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mad.local/schemas/qa-evidence-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "kind", "run_id", "nonce", "challenge_sha256",
+    "source_sha", "target_sha", "merge_base_sha", "qa_plan_sha256",
+    "sandbox_profile_sha256", "checks", "result", "qa_evidence_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "mad-qa-evidence"},
+    "run_id": {"type": "string", "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$"},
+    "nonce": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "challenge_sha256": {"$ref": "#/$defs/sha256"},
+    "source_sha": {"$ref": "#/$defs/objectId"},
+    "target_sha": {"$ref": "#/$defs/objectId"},
+    "merge_base_sha": {"$ref": "#/$defs/objectId"},
+    "qa_plan_sha256": {"$ref": "#/$defs/sha256"},
+    "sandbox_profile_sha256": {"$ref": "#/$defs/sha256"},
+    "checks": {
+      "type": "array", "minItems": 1, "maxItems": 128,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "argv_sha256", "started_at", "finished_at", "exit_code", "timed_out", "stdout", "stderr", "result"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[A-Za-z0-9._-]{1,100}$"},
+          "argv_sha256": {"$ref": "#/$defs/sha256"},
+          "started_at": {"type": "integer", "minimum": 0},
+          "finished_at": {"type": "integer", "minimum": 0},
+          "exit_code": {"type": ["integer", "null"]},
+          "timed_out": {"type": "boolean"},
+          "stdout": {"$ref": "#/$defs/byteDigest"},
+          "stderr": {"$ref": "#/$defs/byteDigest"},
+          "result": {"enum": ["PASS", "FAIL"]}
+        }
+      }
+    },
+    "result": {"enum": ["PASS", "FAIL"]},
+    "qa_evidence_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "objectId": {"type": "string", "pattern": "^[a-f0-9]{40,64}$"},
+    "byteDigest": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sha256", "byte_length"],
+      "properties": {
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "byte_length": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mad.local/schemas/human-approval-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "kind", "scope", "repository", "source", "target", "diff",
+    "policy_sha256", "control_plane_sha256", "risk_class", "nonce", "decision",
+    "issued_at", "expires_at", "approver", "signature"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "mad-human-approval"},
+    "scope": {"enum": ["create-pr", "merge", "genesis", "activate-control-plane"]},
+    "repository": {"$ref": "#/$defs/repository"},
+    "source": {"$ref": "#/$defs/refIdentity"},
+    "target": {"$ref": "#/$defs/refIdentity"},
+    "diff": {"$ref": "#/$defs/byteDigest"},
+    "policy_sha256": {"$ref": "#/$defs/sha256"},
+    "control_plane_sha256": {"$ref": "#/$defs/sha256"},
+    "risk_class": {"type": "string", "minLength": 1, "maxLength": 100},
+    "nonce": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "decision": {"const": "APPROVE"},
+    "issued_at": {"type": "integer", "minimum": 0},
+    "expires_at": {"type": "integer", "minimum": 0},
+    "approver": {
+      "type": "object", "additionalProperties": false,
+      "required": ["subject", "key_id"],
+      "properties": {
+        "subject": {"type": "string", "minLength": 1, "maxLength": 300},
+        "key_id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]{1,200}$"}
+      }
+    },
+    "signature": {
+      "type": "object", "additionalProperties": false,
+      "required": ["algorithm", "key_id", "value"],
+      "properties": {
+        "algorithm": {"const": "Ed25519"},
+        "key_id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]{1,200}$"},
+        "value": {"type": "string", "pattern": "^[A-Za-z0-9_-]{86}$"}
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "objectId": {"type": "string", "pattern": "^[a-f0-9]{40,64}$"},
+    "byteDigest": {
+      "type": "object", "additionalProperties": false,
+      "required": ["algorithm", "sha256", "byte_length"],
+      "properties": {
+        "algorithm": {"const": "sha256"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "byte_length": {"type": "integer", "minimum": 0}
+      }
+    },
+    "repository": {
+      "type": "object", "additionalProperties": false,
+      "required": ["host", "database_id", "name_with_owner"],
+      "properties": {
+        "host": {"type": "string", "minLength": 1, "maxLength": 253},
+        "database_id": {"type": "integer", "minimum": 1},
+        "name_with_owner": {"type": "string", "pattern": "^[^/\\s]+/[^/\\s]+$", "maxLength": 200}
+      }
+    },
+    "refIdentity": {
+      "type": "object", "additionalProperties": false,
+      "required": ["repository_id", "branch", "sha"],
+      "properties": {
+        "repository_id": {"type": "integer", "minimum": 1},
+        "branch": {"type": "string", "minLength": 1, "maxLength": 255},
+        "sha": {"$ref": "#/$defs/objectId"}
+      }
+    }
+  }
+}

@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools==68.1.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mad-final-gates"
+version = "2.0.0"
+description = "Trusted external MAD final-gates control plane"
+requires-python = ">=3.11"
+dependencies = [
+  "cryptography==41.0.7",
+  "jsonschema==4.10.3",
+  "PyYAML==6.0.1",
+  "attrs==23.2.0",
+  "pyrsistent==0.20.0",
+  "cffi==1.16.0",
+  "pycparser==2.21",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.data-files]
+"mad-release/schemas" = ["schemas/*.json"]
+"mad-release" = [
+  "sandbox-profile.json",
+  "genesis-policy.json",
+  "genesis-config.yaml",
+  "control-plane.lock.json",
+  "release-metadata.json",
+]
+"mad-release/launcher" = ["launcher/madctl-launcher.py", "launcher/madctl-launcher.c"]

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "control_plane": {
+    "name": "madctl",
+    "version": "2.0.0",
+    "activation_status": "candidate",
+    "release_digest": null
+  },
+  "orka": {
+    "plugin_id": "orka@personal",
+    "version": "1.8.0"
+  },
+  "critical_review": {
+    "model": "gpt-5.6-sol",
+    "reasoning_effort": "high",
+    "fallback": "none",
+    "authentication": "ChatGPT"
+  },
+  "activation_requires_human_approval": true,
+  "release_contract": {
+    "expected_mad_version": "2.0.0",
+    "mad_release_digest": null,
+    "mad_inventory_digest": null,
+    "external_launcher_path": "/usr/local/bin/madctl",
+    "external_launcher_sha256": null,
+    "trusted_orka_version": "1.8.0",
+    "trusted_orka_root": null,
+    "trusted_orka_digest": null,
+    "trusted_orka_inventory_digest": null,
+    "trusted_codex_path": null,
+    "trusted_codex_sha256": null,
+    "repository_registry_root": null,
+    "controller_state_root": null,
+    "controller_key_path": null,
+    "human_approval_registry_root": null
+  }
+}

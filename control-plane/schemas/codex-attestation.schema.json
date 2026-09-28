@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mad.local/schemas/codex-attestation-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "kind", "stage", "run_id", "nonce", "challenge_sha256",
+    "source_sha", "target_sha", "diff_sha256", "model", "reasoning_effort",
+    "codex_cli_version", "authentication_method", "review_started_at",
+    "review_finished_at", "verdict", "summary", "findings", "attestation_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "mad-codex-attestation"},
+    "stage": {"enum": ["pre-pr", "pre-merge"]},
+    "run_id": {"type": "string", "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$"},
+    "nonce": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "challenge_sha256": {"$ref": "#/$defs/sha256"},
+    "source_sha": {"$ref": "#/$defs/objectId"},
+    "target_sha": {"$ref": "#/$defs/objectId"},
+    "diff_sha256": {"$ref": "#/$defs/sha256"},
+    "model": {"const": "gpt-5.6-sol"},
+    "reasoning_effort": {"const": "high"},
+    "codex_cli_version": {"type": "string", "minLength": 1, "maxLength": 200},
+    "authentication_method": {"const": "Logged in using ChatGPT"},
+    "review_started_at": {"type": "integer", "minimum": 0},
+    "review_finished_at": {"type": "integer", "minimum": 0},
+    "verdict": {"enum": ["PASS", "FAIL"]},
+    "summary": {"type": "string", "minLength": 1, "maxLength": 4000},
+    "findings": {
+      "type": "array", "maxItems": 256,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["severity", "blocking", "component", "description"],
+        "properties": {
+          "severity": {"enum": ["BLOCKER", "HIGH", "MEDIUM", "LOW"]},
+          "blocking": {"type": "boolean"},
+          "component": {"type": "string", "minLength": 1, "maxLength": 300},
+          "description": {"type": "string", "minLength": 1, "maxLength": 2000}
+        }
+      }
+    },
+    "attestation_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "objectId": {"type": "string", "pattern": "^[a-f0-9]{40,64}$"}
+  }
+}

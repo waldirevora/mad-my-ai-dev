@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["challenge_sha256", "verdict", "summary", "findings"],
+  "properties": {
+    "challenge_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "verdict": {"enum": ["PASS", "FAIL"]},
+    "summary": {"type": "string", "minLength": 1, "maxLength": 4000},
+    "findings": {
+      "type": "array", "maxItems": 256,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["severity", "blocking", "component", "description"],
+        "properties": {
+          "severity": {"enum": ["BLOCKER", "HIGH", "MEDIUM", "LOW"]},
+          "blocking": {"type": "boolean"},
+          "component": {"type": "string", "minLength": 1, "maxLength": 300},
+          "description": {"type": "string", "minLength": 1, "maxLength": 2000}
+        }
+      }
+    }
+  }
+}

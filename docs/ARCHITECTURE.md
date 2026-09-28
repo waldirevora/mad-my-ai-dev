@@ -8,32 +8,43 @@ The current project has:
 2. Branch based development.
 3. Isolated Git worktrees.
 4. Engineering rules stored in `AGENTS.md`.
-5. A mandatory Codex check before Pull Request creation.
-6. Project documentation for the current and planned architecture.
+5. A Genesis candidate for the external MAD Final Gates v2 control plane.
+6. Orka 1.8.0 declarative configuration and local conformance coverage.
+7. Project documentation for the current and planned architecture.
 
-Orka, DeepSeek workers, CI, deterministic tests and Pixel Agents integration are not implemented yet.
+MAD v2 is not installed or activated yet. Until the Genesis ceremony finishes,
+its repository hook is defense in depth only and PR/merge operations remain
+manual. GitHub server-side protection, CI, production signing credentials,
+worker orchestration, and Pixel Agents integration remain external work.
+
+The normative gate architecture and its limitations are documented in
+[`MAD_FINAL_GATES_V2.md`](MAD_FINAL_GATES_V2.md).
 
 ## Target architecture
 
 ### Codex
 
-Codex will act as the Master Orchestrator and Engineering Manager.
+Codex acts as the critical independent verifier for MAD final gates.
 
 Its responsibilities will include workflow coordination, supervision and two mandatory final checks.
 
-The first check happens before a Pull Request is created.
+The first check happens before a Pull Request is created through the installed
+control plane.
 
-The second check happens before a merge is allowed.
+The second check happens against a fresh PR head before a merge is allowed.
 
 ### Orka
 
-Orka will provide the software development workflow.
+Orka 1.8.0 provides the software development review workflow where it is safe
+to reuse it.
 
 It will manage isolated work, review stages, security review, QA and merge controls.
 
-### DeepSeek V4.1 Flash
+### Model strategy
 
-DeepSeek V4.1 Flash will be the worker model.
+Normal implementation uses GPT-5.6 Terra Medium. Security architecture, final
+review, pre-PR, and pre-merge critical review use GPT-5.6 Sol High. The installed
+verifier pins its critical model, effort, executable, and ChatGPT authentication.
 
 Planned worker roles are:
 

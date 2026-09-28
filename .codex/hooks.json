@@ -1,0 +1,18 @@
+{
+  "description": "Optional MAD v2 defense in depth; GitHub rules remain authoritative.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/local/bin/madctl hook pre-tool-use",
+            "timeout": 15,
+            "statusMessage": "Applying the non-authoritative MAD command guard"
+          }
+        ]
+      }
+    ]
+  }
+}

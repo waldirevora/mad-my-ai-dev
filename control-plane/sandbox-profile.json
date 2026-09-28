@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "network": "disabled",
+  "source": "read-only-detached-snapshot",
+  "working_storage": "ephemeral",
+  "credentials": "none",
+  "note": "The installed controller pins bubblewrap by exact executable digest and enforces this profile."
+}
