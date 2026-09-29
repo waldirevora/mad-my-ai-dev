@@ -1,151 +1,153 @@
-# MAD × Orka — D2: contrato de proveniência das revisões
+# MAD × Orka — D2: Review Provenance Contract
 
-Status: especificação proposta; não implementada.
+Status: proposed specification; not implemented.
 Base: D1, commit 45df7f8d32660ac2facce4ff6c21a086e65d0fb7.
 
-## 1. Objetivo e limite
+## 1. Objective and Scope
 
-Definir evidência verificável de que um resultado de revisão foi
-capturado por um componente confiável durante uma execução identificada.
+Define verifiable evidence that a review result was captured
+by a trusted component during an identified execution.
 
-D2 não autoriza merge, não substitui aprovação humana, não altera
-a ativação instalada e não considera o ledger Orka uma autoridade
-independente sobre a identidade do provedor.
+D2 does not authorize merges, replace human approval, modify
+the installed activation, or treat the Orka ledger as an
+independent authority for provider identity.
 
-## 2. Constatações do Orka 1.8.0 inspecionado
+## 2. Findings from the Inspected Orka 1.8.0 Copy
 
-- O runner de API obtém uma resposta pelo transporte configurado,
-  registra response_id, provider e model e armazena estado local.
-- O recibo de revisão vincula permissão, papel, HEAD, geração e
-  digest do resultado, mas não incorpora response_id.
-- O caminho desktop pode concluir uma permissão a partir de um
-  resultado estruturado existente.
-- O marcador all-green e o ledger demonstram estados do fluxo
-  Orka; isoladamente, não autenticam a origem de uma revisão.
-- Um response_id é um identificador de rastreabilidade, não uma
-  assinatura criptográfica do provedor.
+- The API runner obtains a response through its configured
+  transport, records response_id, provider, and model, and
+  persists local state.
+- The review receipt binds the permit, role, HEAD, generation,
+  and result digest, but does not include response_id.
+- The desktop path can complete a permit using an existing
+  structured result.
+- The all-green marker and ledger represent Orka workflow
+  states; by themselves, they do not authenticate review origin.
+- A response_id provides traceability; it is not a
+  cryptographic signature from the provider.
 
-Essas constatações decorrem da cópia local examinada. A identidade
-e a integridade da instalação efetivamente utilizada devem ser
-revalidadas separadamente.
+These findings concern the inspected local copy. The identity
+and integrity of the installation actually used must be
+revalidated separately.
 
-## 3. Fronteiras de confiança
+## 3. Trust Boundaries
 
-A. Controlador MAD: fornece vínculos esperados a partir de estado
-   protegido e fontes autoritativas independentes da atestação.
+A. MAD controller: supplies expected bindings from protected
+   state and authoritative sources independent of the
+   attestation.
 
-B. Capturador protegido: observa a requisição e a resposta na
-   fronteira do transporte. Seu código, identidade, configuração
-   e acesso à chave não podem ser controlados pelo agente revisor
-   nem pelo conteúdo do repositório candidato.
+B. Protected capture component: observes requests and responses
+   at the transport boundary. Its code, identity, configuration,
+   and signing-key access must not be controlled by the reviewing
+   agent or the candidate repository content.
 
-C. Provedor: responde pela conexão autenticada do transporte.
-   A garantia obtida depende do provedor, endpoint, TLS, credenciais
-   e eventuais intermediários realmente utilizados.
+C. Provider: communicates over an authenticated transport
+   connection. The assurance obtained depends on the actual
+   provider, endpoint, TLS configuration, credentials, and
+   intermediaries.
 
-D. Orka: fornece dados complementares de fluxo, permissões,
-   resultados e recibos. Esses dados não elevam, por si sós,
-   declarações de identidade a provas de origem.
+D. Orka: supplies complementary workflow data, permits,
+   results, and receipts. These records do not, by themselves,
+   turn identity claims into proof of origin.
 
-## 4. Contrato mínimo de captura
+## 4. Minimum Capture Contract
 
-Uma captura candidata deve vincular, de maneira verificável:
+A candidate capture must verifiably bind:
 
-- identidade do capturador e versão do componente confiável;
-- provedor e endpoint efetivamente usados, com política de
-  destinos permitidos e validação do transporte;
-- modelo solicitado e identidade de execução observada;
-- identificador de requisição/resposta retornado, quando houver;
-- digest canônico do resultado estruturado efetivamente recebido;
-- identificador da execução, papel, gate e geração da revisão;
-- repositório, PR, branch e SHA de origem e destino;
-- challenge, política e nonce fornecidos pelo MAD;
-- horário e estado terminal, distinguindo sucesso, falha
-  e resultado indeterminado.
+- the capture component's identity and trusted version;
+- the provider and endpoint actually used, including an
+  allowed-destination policy and transport validation;
+- the requested model and observed execution identity;
+- a returned request or response identifier, when available;
+- the canonical digest of the structured result actually received;
+- the execution identifier, role, gate, and review generation;
+- repository, PR, and source and target branches and SHAs;
+- challenge, policy, and nonce supplied by MAD;
+- timestamp and terminal state, distinguishing success,
+  failure, and indeterminate outcomes.
 
-Campos declarados pelo agente não podem preencher ou substituir
-os campos de identidade observados pelo capturador.
+Agent-declared fields must not populate or override identities
+observed by the protected capture component.
 
-A captura deve preservar evidência suficiente para relacionar
-o resultado utilizado pelo Orka à resposta observada. Em revisões
-com múltiplas chamadas, deve identificar qual resposta terminal
-produziu o resultado, sem inferir essa relação apenas da ordem
-dos registros.
+The capture must retain sufficient evidence to link the result
+used by Orka to the observed response. For multi-call reviews,
+it must identify which terminal response produced the result,
+rather than inferring that relationship solely from record order.
 
-## 5. Autenticação e limites da alegação
+## 5. Authentication and Limits of the Claim
 
-O capturador deve utilizar configuração protegida e endpoints
-autorizados. Overrides de URL, proxies e redirecionamentos exigem
-política explícita; não se presumem confiáveis.
+The capture component must use protected configuration and
+authorized endpoints. URL overrides, proxies, and redirects
+require explicit policy; they are not presumed trustworthy.
 
-Uma conexão autenticada e um response_id permitem ao capturador
-atestar o que observou. Isso não equivale a uma assinatura
-criptográfica do conteúdo pelo provedor e não comprova, por si
-só, detalhes internos da execução do modelo.
+An authenticated connection and response_id allow the capture
+component to attest to what it observed. This is not equivalent
+to a provider's cryptographic signature over the content and
+does not, by itself, prove details of internal model execution.
 
-Se a identidade do provedor, o vínculo com a resposta ou o estado
-terminal não puderem ser estabelecidos, a emissão deve falhar
-de modo fechado. Operações indeterminadas exigem reconciliação;
-não podem ser convertidas automaticamente em PASS.
+If provider identity, response binding, or terminal state
+cannot be established, issuance must fail closed. Indeterminate
+operations require reconciliation; they must not automatically
+be converted into PASS.
 
-## 6. Relação com a atestação D1
+## 6. Relationship to the D1 Attestation
 
-O emissor futuro só poderá assinar após verificar a captura
-protegida, os vínculos esperados do MAD e a correspondência
-exata com o resultado e o recibo Orka aplicáveis.
+A future issuer may sign only after verifying the protected
+capture, MAD's expected bindings, and the exact correspondence
+with the applicable Orka result and receipt.
 
-O verificador D1 continua responsável pela assinatura Ed25519,
-pelo esquema, pela validade temporal e pelos vínculos fornecidos
-independentemente. Ele não deve passar a inferir proveniência
-a partir de campos autodeclarados.
+The D1 verifier remains responsible for the Ed25519 signature,
+schema, validity period, and independently supplied bindings.
+It must not infer provenance from self-declared fields.
 
-A confiança nas chaves públicas e a proteção da chave privada
-exigem provisionamento próprio. Qualquer alteração no manifesto
-de ativação deverá atualizar coerentemente esquema, launcher C,
-launcher Python, inventários e testes de segurança.
+Public-key trust and private-key protection require separate
+provisioning. Any activation-manifest change must update the
+schema, C launcher, Python launcher, inventories, and security
+tests consistently.
 
-## 7. Caminho desktop
+## 7. Desktop Path
 
-O caminho desktop não recebe automaticamente as garantias do
-transporte de API. Até existir mecanismo independente de captura
-autenticada e vínculo com a execução, ele não poderá originar
-atestações confiáveis para autorização de merge.
+The desktop path does not automatically inherit the assurances
+of the API transport. Until an independent authenticated capture
+mechanism binds its execution, it must not originate trusted
+attestations for merge authorization.
 
-## 8. Consumo único e operações indeterminadas
+## 8. Single-Use Consumption and Indeterminate Operations
 
-O consumo de atestação deve ser persistente e identificado por
-attestation_id e/ou digest canônico, vinculado à operação.
+Attestation consumption must be persistent, identified by
+attestation_id and/or canonical digest, and bound to the
+operation.
 
-A transição da aprovação MAD e a reserva do consumo exigem
-protocolo explícito de recuperação. Uma falha após publicação
-não autoriza reutilização nem repetição cega da operação externa.
+The MAD approval transition and consumption reservation require
+an explicit recovery protocol. A failure after publication does
+not authorize reuse or blind repetition of the external operation.
 
-O consumo existente por approval_id não substitui o consumo
-específico da atestação.
+Existing consumption by approval_id does not replace
+attestation-specific consumption.
 
-## 9. Critérios para um incremento implementável
+## 9. Criteria for an Implementable Increment
 
-Antes de integrar ao controlador, devem existir testes para:
+Before controller integration, tests must cover:
 
-- captura autorizada e correspondência exata do resultado;
-- origem, endpoint ou identidade não permitidos;
-- alteração de resposta, digest, papel ou geração;
-- divergência de PR, HEAD, challenge, política ou nonce;
-- ausência de resposta terminal e falha de transporte;
-- respostas repetidas e tentativa de reutilização;
-- falha antes e depois da publicação do consumo;
-- caminho desktop sem prova independente;
-- impossibilidade de emitir PASS a partir de ledger,
-  marcador ou response_id isolados.
+- authorized capture and exact result correspondence;
+- disallowed origin, endpoint, or identity;
+- modified response, digest, role, or generation;
+- mismatched PR, HEAD, challenge, policy, or nonce;
+- missing terminal response and transport failure;
+- repeated responses and attempted reuse;
+- failure before and after consumption publication;
+- desktop execution without independent proof;
+- inability to issue PASS from a ledger, marker, or
+  response_id alone.
 
-Os testes com adaptadores simulados não substituem validação da
-instalação real, do isolamento, do transporte e da cadeia nativa.
+Tests using simulated adapters do not replace validation of
+the real installation, isolation, transport, and native chain.
 
-## 10. Fora do escopo desta especificação
+## 10. Out of Scope
 
-Não há emissor de produção, novo material de chave, alteração
-do manifesto, migração de schema, consumo operacional, habilitação
-de merges ou ativação do MAD.
+This specification provides no production issuer, new key
+material, manifest changes, schema migration, operational
+consumption, merge enablement, or MAD activation.
 
-A implementação dependerá de revisão técnica da fronteira de
-confiança e de um plano de testes independente.
+Implementation depends on technical review of the trust
+boundary and an independent test plan.
