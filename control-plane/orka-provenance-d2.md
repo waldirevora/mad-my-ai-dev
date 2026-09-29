@@ -114,16 +114,43 @@ attestations for merge authorization.
 
 ## 8. Single-Use Consumption and Indeterminate Operations
 
-Attestation consumption must be persistent, identified by
-attestation_id and/or canonical digest, and bound to the
-operation.
+Attestation consumption must be persistent, uniquely identified
+by attestation_id and/or canonical digest, and bound to the
+approval, operation, run, PR, and exact source and target SHAs.
+Distinct approval_ids must not permit reuse of one attestation.
 
-The MAD approval transition and consumption reservation require
-an explicit recovery protocol. A failure after publication does
-not authorize reuse or blind repetition of the external operation.
+The MAD approval transition and attestation consumption
+reservation are separate persistent writes unless an atomic
+transaction is explicitly implemented and verified. No external
+merge request may be issued before the required reservation
+and approval state have been durably established and rechecked.
+
+Recovery must explicitly distinguish:
+
+- failure before reservation publication;
+- publication that may have succeeded despite an error,
+  including failure during directory synchronization;
+- failure between reservation and approval-state writes;
+- an approval in consuming state with a missing or present
+  consumption record;
+- an external merge request with an unknown outcome.
+
+A pre-existing reservation blocks automatic reuse, including
+under another approval_id. A missing record alone does not
+establish that an external operation was never attempted.
+Indeterminate states must fail closed until independently
+reconciled against durable local evidence and authoritative
+remote state.
+
+Recovery must not blindly repeat an external operation or
+reset an approval to approved. The protocol must specify
+locking, unique reservation identity, permitted state
+transitions, operator intervention, and auditable outcomes.
 
 Existing consumption by approval_id does not replace
-attestation-specific consumption.
+attestation-specific consumption. Exclusive file publication
+does not, by itself, make separate approval and consumption
+writes transactional.
 
 ## 9. Criteria for an Implementable Increment
 
@@ -135,7 +162,13 @@ Before controller integration, tests must cover:
 - mismatched PR, HEAD, challenge, policy, or nonce;
 - missing terminal response and transport failure;
 - repeated responses and attempted reuse;
-- failure before and after consumption publication;
+- concurrent attempts to consume one attestation under
+  different approval_ids;
+- failure before and after consumption publication,
+  including directory synchronization failure;
+- failure between reservation and approval-state writes;
+- reconciliation of missing, existing, and indeterminate
+  consumption records without repeating an external merge;
 - desktop execution without independent proof;
 - inability to issue PASS from a ledger, marker, or
   response_id alone.
