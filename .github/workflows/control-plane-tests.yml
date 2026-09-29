@@ -2,7 +2,10 @@ name: Control plane tests
 
 'on':
   pull_request:
-    branches: [main]
+    branches:
+      - main
+      - feat/mad-orka-attestation
+      - feat/mad-orka-provenance-spec
 
 permissions:
   contents: read
