@@ -28,7 +28,9 @@ jobs:
         run: |
           python -m pip install --no-cache-dir \
             -r control-plane/requirements.txt \
-            pytest==8.3.5
+            pytest==8.3.5 \
+            setuptools==68.1.2 \
+            wheel==0.45.1
           python -m pip check
 
       - name: Run control-plane tests
@@ -36,5 +38,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE: '1'
           PYTHONPATH: control-plane/src
         run: |
-          python -m pytest -q -rs -p no:cacheprovider \
+          test_python="$(command -v python)"
+          test -x /usr/bin/python3
+          PATH="/usr/bin:$PATH" "$test_python" -m pytest -q -rs -p no:cacheprovider \
             control-plane/tests
