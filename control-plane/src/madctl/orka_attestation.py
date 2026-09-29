@@ -58,6 +58,23 @@ def _decode_signature(value: str) -> bytes:
     return raw
 
 
+def _same_typed_value(actual: Any, expected: Any) -> bool:
+    """Compare bindings recursively without Python numeric type coercion."""
+    if type(actual) is not type(expected):
+        return False
+    if isinstance(actual, dict):
+        return actual.keys() == expected.keys() and all(
+            _same_typed_value(value, expected[key])
+            for key, value in actual.items()
+        )
+    if isinstance(actual, list):
+        return len(actual) == len(expected) and all(
+            _same_typed_value(left, right)
+            for left, right in zip(actual, expected)
+        )
+    return actual == expected
+
+
 class OrkaReviewAttestationVerifier:
     """Verify cryptographic integrity and exact externally supplied bindings.
 
@@ -119,7 +136,7 @@ class OrkaReviewAttestationVerifier:
         if raw is not None:
             verify_canonical_artifact(raw, attestation)
         for field in sorted(_REQUIRED_BINDINGS):
-            if attestation[field] != expected[field]:
+            if not _same_typed_value(attestation[field], expected[field]):
                 raise EvidenceError(f"review attestation binding mismatch: {field}")
         if (
             (attestation["gate"] == "code-review" and attestation["reviewer"]["role"] != "code-reviewer")

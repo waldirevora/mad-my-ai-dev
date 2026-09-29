@@ -196,6 +196,33 @@ def test_missing_trusted_binding_rejected(specimen):
         _verify(specimen, expected=expected)
 
 
+@pytest.mark.parametrize("path", [
+    ("review_generation",),
+    ("repository", "database_id"),
+    ("pr", "database_id"),
+    ("pr", "number"),
+    ("source", "repository_id"),
+    ("target", "repository_id"),
+])
+def test_numeric_expected_type_mismatch_rejected(specimen, path):
+    expected = copy.deepcopy(specimen[1])
+    nested = expected
+    for segment in path[:-1]:
+        nested = nested[segment]
+    nested[path[-1]] = float(nested[path[-1]])
+
+    with pytest.raises(EvidenceError, match="binding mismatch"):
+        _verify(specimen, expected=expected)
+
+
+def test_boolean_expected_cannot_match_signed_integer(specimen):
+    expected = copy.deepcopy(specimen[1])
+    expected["review_generation"] = True
+
+    with pytest.raises(EvidenceError, match="binding mismatch"):
+        _verify(specimen, expected=expected)
+
+
 def test_noncanonical_file_rejected(specimen):
     raw = canonical_bytes(specimen[0]) + b"\n\n"
     with pytest.raises(EvidenceError, match="canonical"):
