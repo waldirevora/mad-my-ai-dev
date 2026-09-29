@@ -7,18 +7,78 @@ Raw requests, responses, credentials, and signing keys are not stored.
 """
 from __future__ import annotations
 
+import json
 import re
 import secrets
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
+from typing import Any
 
-from .canonical import sha256_bytes
+from .canonical import canonical_bytes, sha256_bytes
 from .errors import EvidenceError
 
 
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 _OPERATION_ID = re.compile(r"[A-Za-z0-9_.:-]{1,128}")
+
+_MAX_EVIDENCE_BYTES = 32_768
+
+# Only these experimental metadata/signature fields may be persisted.
+# Never persist the raw provider request or response here.
+_EVIDENCE_SHAPES = {
+    "capture": frozenset({
+        "kind", "provider", "endpoint", "model",
+        "execution_identity", "response_id", "review_run_id",
+        "gate", "review_generation", "result_sha256",
+        "response_sha256", "terminal_state",
+    }),
+    "link": frozenset({
+        "kind", "key_id", "attestation_sha256",
+        "capture_sha256", "bindings_sha256", "signature",
+    }),
+    "receipt": frozenset({
+        "kind", "operation_id", "key_id", "request_sha256",
+        "capture_sha256", "link_sha256", "signature",
+    }),
+}
+
+
+def _serialize_evidence(value: Any) -> bytes:
+    if type(value) is not dict or set(value) != set(_EVIDENCE_SHAPES):
+        raise EvidenceError("invalid durable evidence shape")
+
+    for name, fields in _EVIDENCE_SHAPES.items():
+        artifact = value[name]
+        if type(artifact) is not dict or set(artifact) != fields:
+            raise EvidenceError(
+                f"invalid durable evidence artifact: {name}"
+            )
+
+    try:
+        raw = canonical_bytes(value)
+    except (TypeError, ValueError) as exc:
+        raise EvidenceError(
+            "invalid durable evidence serialization"
+        ) from exc
+
+    if not 0 < len(raw) <= _MAX_EVIDENCE_BYTES:
+        raise EvidenceError("invalid durable evidence size")
+
+    return raw
+
+
+def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    value: dict[str, Any] = {}
+    for key, item in pairs:
+        if key in value:
+            raise EvidenceError("duplicate durable evidence property")
+        value[key] = item
+    return value
+
+
+def _reject_constant(value: str) -> None:
+    raise EvidenceError(f"invalid durable JSON constant: {value}")
 
 
 def _digest(value: str, field: str) -> str:
@@ -75,6 +135,18 @@ class DurableCaptureStore:
                 )
             """)
 
+        # Separate table preserves compatibility with existing D7
+        # databases, including historical digest-only completions.
+        with self._transaction() as connection:
+            connection.execute("""
+                CREATE TABLE IF NOT EXISTS evidence_artifacts (
+                    operation_id TEXT PRIMARY KEY,
+                    artifact BLOB NOT NULL,
+                    FOREIGN KEY (operation_id)
+                        REFERENCES operations(operation_id)
+                )
+            """)
+
     @contextmanager
     def _transaction(self):
         connection = sqlite3.connect(
@@ -84,6 +156,7 @@ class DurableCaptureStore:
         )
         try:
             connection.execute("PRAGMA synchronous = FULL")
+            connection.execute("PRAGMA foreign_keys = ON")
             connection.execute("BEGIN IMMEDIATE")
             yield connection
             connection.execute("COMMIT")
@@ -201,6 +274,129 @@ class DurableCaptureStore:
                 raise EvidenceError(
                     "durable completion unavailable or claim mismatch"
                 )
+
+    def complete_with_evidence(
+        self,
+        operation_id: str,
+        binding_sha256: str,
+        claim_token: bytes,
+        evidence: dict[str, Any],
+    ) -> None:
+        """Commit signed artifacts and completion in one transaction.
+
+        The caller must verify cryptographic evidence before invoking
+        this method. The store independently limits artifact shapes
+        and computes the digest from the serialized bytes.
+        """
+        operation_id = _operation_id(operation_id)
+        binding_sha256 = _digest(
+            binding_sha256, "operation binding"
+        )
+
+        if type(claim_token) is not bytes or len(claim_token) != 32:
+            raise EvidenceError("invalid durable claim token")
+
+        raw = _serialize_evidence(evidence)
+        digest = sha256_bytes(raw)
+
+        with self._transaction() as connection:
+            updated = connection.execute(
+                """
+                UPDATE operations
+                SET status = 'completed',
+                    evidence_sha256 = ?
+                WHERE operation_id = ?
+                  AND binding_sha256 = ?
+                  AND status = 'needs_reconcile'
+                  AND claim_sha256 = ?
+                  AND evidence_sha256 IS NULL
+                """,
+                (
+                    digest,
+                    operation_id,
+                    binding_sha256,
+                    sha256_bytes(claim_token),
+                ),
+            )
+
+            if updated.rowcount != 1:
+                raise EvidenceError(
+                    "durable completion unavailable or claim mismatch"
+                )
+
+            # An insertion failure rolls back the status update too.
+            connection.execute(
+                """
+                INSERT INTO evidence_artifacts (
+                    operation_id, artifact
+                ) VALUES (?, ?)
+                """,
+                (operation_id, raw),
+            )
+
+    def load_completed_evidence(
+        self,
+        operation_id: str,
+    ) -> dict[str, Any]:
+        """Load locally consistent artifacts, not yet trusted evidence.
+
+        Callers must independently verify D1, companion signatures,
+        request bindings, signer identity, and authorization.
+        """
+        operation_id = _operation_id(operation_id)
+
+        with self._transaction() as connection:
+            row = connection.execute(
+                """
+                SELECT
+                    o.status,
+                    o.evidence_sha256,
+                    e.artifact
+                FROM operations AS o
+                LEFT JOIN evidence_artifacts AS e
+                  ON e.operation_id = o.operation_id
+                WHERE o.operation_id = ?
+                """,
+                (operation_id,),
+            ).fetchone()
+
+        if row is None:
+            raise EvidenceError("unknown durable operation")
+
+        status, recorded_digest, raw = row
+
+        if status != "completed":
+            raise EvidenceError(
+                "durable evidence unavailable: operation not completed"
+            )
+
+        # A D7 digest-only completion cannot be reconstructed.
+        if (
+            type(raw) is not bytes
+            or not 0 < len(raw) <= _MAX_EVIDENCE_BYTES
+            or type(recorded_digest) is not str
+            or _HEX64.fullmatch(recorded_digest) is None
+        ):
+            raise EvidenceError("missing or invalid durable evidence")
+
+        if sha256_bytes(raw) != recorded_digest:
+            raise EvidenceError("durable evidence digest mismatch")
+
+        try:
+            evidence = json.loads(
+                raw,
+                object_pairs_hook=_unique_object,
+                parse_constant=_reject_constant,
+            )
+        except (ValueError, UnicodeDecodeError, TypeError) as exc:
+            raise EvidenceError("invalid durable evidence JSON") from exc
+
+        if _serialize_evidence(evidence) != raw:
+            raise EvidenceError(
+                "noncanonical durable evidence serialization"
+            )
+
+        return evidence
 
     def state(self, operation_id: str) -> str:
         operation_id = _operation_id(operation_id)

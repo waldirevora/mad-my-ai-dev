@@ -11,7 +11,7 @@ import base64
 import binascii
 import copy
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any, Callable, Mapping
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
@@ -286,11 +286,11 @@ class MockCaptureBoundary:
         if self._durable_store is not None:
             if claim_token is None:
                 raise EvidenceError("missing durable claim token")
-            self._durable_store.complete(
+            self._durable_store.complete_with_evidence(
                 operation_id,
                 binding,
                 claim_token,
-                canonical_sha256(evidence),
+                evidence,
             )
 
         operation.state = "completed"
@@ -352,3 +352,58 @@ def verify_mock_request_receipt(
         )
     except (InvalidSignature, ValueError) as exc:
         raise EvidenceError("invalid mock receipt signature") from exc
+
+def recover_verified_mock_evidence(
+    *,
+    store: DurableCaptureStore,
+    operation_id: str,
+    verifier: OrkaReviewAttestationVerifier,
+    attestation: dict[str, Any],
+    expected: dict[str, Any],
+    now: int,
+    request_bytes: bytes,
+    capture_keys: Mapping[str, bytes],
+    receipt_public_key: bytes,
+) -> dict[str, dict[str, Any]]:
+    """Recover and reverify experimental evidence without resubmission.
+
+    The caller must independently provision trusted D1 expectations,
+    request bytes, current verification time, and signing keys.
+    A successful result does not authenticate a real provider.
+    """
+    if not isinstance(store, DurableCaptureStore):
+        raise EvidenceError("invalid recovery store")
+
+    evidence = store.load_completed_evidence(operation_id)
+    capture = evidence["capture"]
+    link = evidence["link"]
+    receipt = evidence["receipt"]
+
+    if receipt["operation_id"] != operation_id:
+        raise EvidenceError("recovered operation ID mismatch")
+
+    if (
+        receipt["key_id"] != link["key_id"]
+        or receipt_public_key != capture_keys.get(link["key_id"])
+    ):
+        raise EvidenceError("recovered signer identity mismatch")
+
+    verify_companion_evidence(
+        verifier=verifier,
+        attestation=attestation,
+        expected=expected,
+        now=now,
+        capture=capture,
+        link=link,
+        capture_keys=capture_keys,
+    )
+
+    verify_mock_request_receipt(
+        receipt=receipt,
+        request_bytes=request_bytes,
+        capture=capture,
+        link=link,
+        public_key=receipt_public_key,
+    )
+
+    return evidence
