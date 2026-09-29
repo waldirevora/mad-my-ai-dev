@@ -100,6 +100,30 @@ The D1 verifier remains responsible for the Ed25519 signature,
 schema, validity period, and independently supplied bindings.
 It must not infer provenance from self-declared fields.
 
+The closed D1 v1 schema includes reviewer.execution_identity,
+result_sha256, and Orka evidence digests, but has no field for a
+provider response identifier, observed endpoint, or protected
+capture-evidence digest. These existing fields do not by
+themselves establish authenticated provider provenance.
+
+The implementation must select and document one verifiable
+cross-artifact binding before an issuer or merge integration
+is introduced. Candidate approaches include:
+
+- Retain D1 v1 and use independently authenticated companion
+  evidence. A protected verifier must bind that evidence to
+  the exact attestation digest, terminal provider response,
+  canonical result digest, and applicable MAD and Orka context.
+  Matching agent-writable identifiers alone is insufficient.
+- Introduce a separately versioned attestation schema that
+  signs an explicit capture-evidence commitment. This requires
+  coordinated schema, verifier, issuer, and compatibility tests.
+
+Neither approach is selected by this specification. The final
+design must prevent substitution, omission, or replay of
+capture evidence and must fail closed when the binding cannot
+be independently verified.
+
 Public-key trust and private-key protection require separate
 provisioning. Any activation-manifest change must update the
 schema, C launcher, Python launcher, inventories, and security
@@ -157,6 +181,7 @@ writes transactional.
 Before controller integration, tests must cover:
 
 - authorized capture and exact result correspondence;
+- missing, substituted, or replayed capture evidence;
 - disallowed origin, endpoint, or identity;
 - modified response, digest, role, or generation;
 - mismatched PR, HEAD, challenge, policy, or nonce;
