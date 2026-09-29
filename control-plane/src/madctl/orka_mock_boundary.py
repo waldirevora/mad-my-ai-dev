@@ -24,6 +24,7 @@ from .errors import EvidenceError
 from .orka_attestation import OrkaReviewAttestationVerifier
 from .orka_capture import capture_simulated_review
 from .orka_companion import LINK_DOMAIN, verify_companion_evidence
+from .orka_durable_state import DurableCaptureStore
 
 
 RECEIPT_DOMAIN = b"MAD-ORKA-MOCK-REQUEST-RECEIPT/v0\x00"
@@ -50,6 +51,19 @@ class _Operation:
     state: str = "ready"
 
 
+def _operation_fingerprint(
+    operation_id: str, operation: _Operation
+) -> str:
+    return canonical_sha256({
+        "operation_id": operation_id,
+        "attestation_sha256": canonical_sha256(operation.attestation),
+        "bindings_sha256": canonical_sha256(operation.expected),
+        "context": operation.context,
+        "request_sha256": sha256_bytes(operation.request_bytes),
+        "verification_time": operation.now,
+    })
+
+
 class MockCaptureBoundary:
     """A controlled mock workflow, without a caller-facing sign method."""
 
@@ -61,6 +75,7 @@ class MockCaptureBoundary:
         key_id: str,
         public_key: bytes,
         allowed_endpoints: frozenset[str],
+        durable_store: DurableCaptureStore | None = None,
     ) -> None:
         if not isinstance(signing_key, Ed25519PrivateKey):
             raise EvidenceError("invalid mock signing key")
@@ -76,6 +91,11 @@ class MockCaptureBoundary:
         self._key_id = key_id
         self._public_key = public_key
         self._allowed_endpoints = allowed_endpoints
+        if durable_store is not None and not isinstance(
+            durable_store, DurableCaptureStore
+        ):
+            raise EvidenceError("invalid durable store")
+        self._durable_store = durable_store
         self._operations: dict[str, _Operation] = {}
 
     def register_authorized_operation(
@@ -145,7 +165,7 @@ class MockCaptureBoundary:
         ):
             raise EvidenceError("mock endpoint is not allowed")
 
-        self._operations[operation_id] = _Operation(
+        operation = _Operation(
             attestation=copy.deepcopy(attestation),
             expected=copy.deepcopy(expected),
             now=now,
@@ -153,11 +173,19 @@ class MockCaptureBoundary:
             request_bytes=request_bytes,
             transport=transport,
         )
+        if self._durable_store is not None:
+            self._durable_store.register(
+                operation_id,
+                _operation_fingerprint(operation_id, operation),
+            )
+        self._operations[operation_id] = operation
 
     def state(self, operation_id: str) -> str:
         operation = self._operations.get(operation_id)
         if operation is None:
             raise EvidenceError("unknown mock operation")
+        if self._durable_store is not None:
+            return self._durable_store.state(operation_id)
         return operation.state
 
     def observe_and_sign(
@@ -172,8 +200,14 @@ class MockCaptureBoundary:
         if operation is None or operation.state != "ready":
             raise EvidenceError("mock operation is unavailable")
 
-        # Failure-closed before invoking the external-operation stub.
-        # This state is in memory and is not crash-safe persistence.
+        # The durable claim commits before invoking transport.
+        # If execution stops afterward, no automatic retry occurs.
+        binding = _operation_fingerprint(operation_id, operation)
+        claim_token = (
+            self._durable_store.claim(operation_id, binding)
+            if self._durable_store is not None
+            else None
+        )
         operation.state = "needs_reconcile"
 
         observed = capture_simulated_review(
@@ -235,13 +269,32 @@ class MockCaptureBoundary:
             receipt_signature
         ).rstrip(b"=").decode("ascii")
 
-        operation.state = "completed"
-
-        return {
+        evidence = {
             "capture": capture,
             "link": link,
             "receipt": receipt,
         }
+
+        verify_mock_request_receipt(
+            receipt=receipt,
+            request_bytes=operation.request_bytes,
+            capture=capture,
+            link=link,
+            public_key=self._public_key,
+        )
+
+        if self._durable_store is not None:
+            if claim_token is None:
+                raise EvidenceError("missing durable claim token")
+            self._durable_store.complete(
+                operation_id,
+                binding,
+                claim_token,
+                canonical_sha256(evidence),
+            )
+
+        operation.state = "completed"
+        return evidence
 
 
 def verify_mock_request_receipt(
