@@ -56,6 +56,7 @@ def test_observed_response_matches_presented_result(specimen):
         specimen["result"]
     )
     assert observed.response_sha256 == sha256_bytes(raw)
+    assert observed.capture["response_sha256"] == sha256_bytes(raw)
     assert observed.capture["provider"] == "fixture-provider"
 
 
@@ -160,3 +161,19 @@ def test_repeated_capture_does_not_implement_one_time_use(specimen):
     second = run(copy.deepcopy(specimen))
 
     assert first.capture == second.capture
+
+
+def test_response_bytes_change_commitment_even_if_result_matches(specimen):
+    compact = json.dumps(
+        specimen["response"], separators=(",", ":")
+    ).encode()
+    indented = json.dumps(
+        specimen["response"], indent=2
+    ).encode()
+
+    first = run(specimen, raw=compact)
+    second = run(specimen, raw=indented)
+
+    assert first.capture["result_sha256"] == second.capture["result_sha256"]
+    assert first.capture["response_sha256"] != second.capture["response_sha256"]
+    assert canonical_sha256(first.capture) != canonical_sha256(second.capture)

@@ -20,12 +20,12 @@ from .errors import EvidenceError
 from .orka_attestation import OrkaReviewAttestationVerifier
 
 
-LINK_DOMAIN = b"MAD-ORKA-COMPANION-LINK/prototype-v0\x00"
+LINK_DOMAIN = b"MAD-ORKA-COMPANION-LINK/prototype-v1\x00"
 
 _CAPTURE_FIELDS = frozenset({
     "kind", "provider", "endpoint", "model", "execution_identity",
     "response_id", "review_run_id", "gate", "review_generation",
-    "result_sha256", "terminal_state",
+    "result_sha256", "response_sha256", "terminal_state",
 })
 _LINK_FIELDS = frozenset({
     "kind", "key_id", "attestation_sha256", "capture_sha256",
@@ -58,7 +58,7 @@ def verify_companion_evidence(
     if type(capture) is not dict or set(capture) != _CAPTURE_FIELDS:
         raise EvidenceError("invalid companion capture shape")
 
-    if capture["kind"] != "mad.orka.simulated-capture.v0":
+    if capture["kind"] != "mad.orka.simulated-capture.v1":
         raise EvidenceError("unsupported companion capture kind")
 
     if capture["terminal_state"] != "success":
@@ -77,6 +77,8 @@ def verify_companion_evidence(
         or capture["review_generation"] < 1
         or type(capture["result_sha256"]) is not str
         or _HEX64.fullmatch(capture["result_sha256"]) is None
+        or type(capture["response_sha256"]) is not str
+        or _HEX64.fullmatch(capture["response_sha256"]) is None
     ):
         raise EvidenceError("invalid companion capture result metadata")
 
@@ -99,7 +101,7 @@ def verify_companion_evidence(
     if type(link) is not dict or set(link) != _LINK_FIELDS:
         raise EvidenceError("invalid companion link shape")
 
-    if link["kind"] != "mad.orka.companion-link.prototype-v0":
+    if link["kind"] != "mad.orka.companion-link.prototype-v1":
         raise EvidenceError("unsupported companion link kind")
 
     key_id = link["key_id"]

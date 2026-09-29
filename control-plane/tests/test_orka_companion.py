@@ -101,7 +101,7 @@ def bundle():
     )
 
     capture = {
-        "kind": "mad.orka.simulated-capture.v0",
+        "kind": "mad.orka.simulated-capture.v1",
         "provider": "fixture-provider",
         "endpoint": "https://fixture.example/v1",
         "model": "fixture-model",
@@ -111,10 +111,11 @@ def bundle():
         "gate": "code-review",
         "review_generation": 1,
         "result_sha256": "4" * 64,
+        "response_sha256": "a" * 64,
         "terminal_state": "success",
     }
     link = {
-        "kind": "mad.orka.companion-link.prototype-v0",
+        "kind": "mad.orka.companion-link.prototype-v1",
         "key_id": "d3-capture-key",
         "attestation_sha256": canonical_sha256(document),
         "capture_sha256": canonical_sha256(capture),
@@ -201,4 +202,32 @@ def test_d1_result_mismatch_rejected(bundle):
 def test_stateless_reverification_is_not_one_time_consumption(bundle):
     # Explicit limitation: durable consumption is outside this experiment.
     verify(bundle)
+    verify(bundle)
+
+
+def test_changed_response_digest_rejected(bundle):
+    bundle["capture"]["response_sha256"] = "b" * 64
+    with pytest.raises(EvidenceError, match="capture digest mismatch"):
+        verify(bundle)
+
+
+def test_malformed_response_digest_rejected(bundle):
+    bundle["capture"]["response_sha256"] = "b" * 63
+    with pytest.raises(EvidenceError, match="capture result metadata"):
+        verify(bundle)
+
+
+def test_trusted_signer_cannot_be_replaced_by_digest_alone(bundle):
+    bundle["capture"]["response_sha256"] = "b" * 64
+    bundle["link"]["capture_sha256"] = canonical_sha256(bundle["capture"])
+    with pytest.raises(EvidenceError, match="companion signature"):
+        verify(bundle)
+
+
+def test_simulated_signer_cannot_prove_raw_response_origin(bundle):
+    # A signer with the trusted key can attest to an unverified digest.
+    # Real transport observation and key isolation remain outside D4.
+    bundle["capture"]["response_sha256"] = "b" * 64
+    bundle["link"]["capture_sha256"] = canonical_sha256(bundle["capture"])
+    sign_link(bundle["link"], bundle["capture_key"])
     verify(bundle)

@@ -141,8 +141,10 @@ def capture_simulated_review(
     if observed_digest != canonical_sha256(presented_result):
         raise EvidenceError("presented result differs from observed response")
 
+    response_digest = sha256_bytes(raw_response)
+
     capture = {
-        "kind": "mad.orka.simulated-capture.v0",
+        "kind": "mad.orka.simulated-capture.v1",
         "provider": context["provider"],
         "endpoint": context["endpoint"],
         "model": context["model"],
@@ -152,10 +154,11 @@ def capture_simulated_review(
         "gate": context["gate"],
         "review_generation": generation,
         "result_sha256": observed_digest,
+        "response_sha256": response_digest,
         "terminal_state": "success",
     }
 
     return ObservedReview(
         capture=capture,
-        response_sha256=sha256_bytes(raw_response),
+        response_sha256=response_digest,
     )
