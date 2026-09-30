@@ -7,7 +7,8 @@ import argparse
 import os
 import subprocess
 import sys
-from pathlib import Path
+import zipfile
+from pathlib import Path, PurePosixPath
 
 
 def build(source: Path, output: Path) -> Path:
@@ -21,6 +22,20 @@ def build(source: Path, output: Path) -> Path:
     wheels = list(output.glob("mad_final_gates-*.whl"))
     if len(wheels) != 1:
         raise RuntimeError("deterministic wheel build did not produce exactly one artifact")
+
+    # Independent fail-closed check of the produced artifact.
+    with zipfile.ZipFile(wheels[0]) as archive:
+        for member in archive.namelist():
+            parts = PurePosixPath(member).parts
+            if (
+                parts
+                and parts[0] == "madctl"
+                and any(part.startswith("orka_") for part in parts[1:])
+            ):
+                raise RuntimeError(
+                    "experimental Orka source found in transport wheel"
+                )
+
     return wheels[0]
 
 
