@@ -74,15 +74,31 @@ def atomic_write_bytes(path: Path, raw: bytes, *, exclusive: bool = False) -> No
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     os.chmod(path.parent, 0o700)
     if exclusive:
+        tmp = path.parent / f".{path.name}.tmp-{os.getpid()}-{os.urandom(8).hex()}"
         flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
-        fd = os.open(path, flags, 0o600)
+        fd = os.open(tmp, flags, 0o600)
         try:
             with os.fdopen(fd, "wb", closefd=False) as stream:
                 stream.write(raw)
                 stream.flush()
                 os.fsync(stream.fileno())
-        finally:
             os.close(fd)
+            fd = -1
+
+            # Publish without replacing an existing consumption record.
+            os.link(tmp, path)
+            tmp.unlink()
+
+            dir_fd = os.open(path.parent, os.O_RDONLY)
+            try:
+                os.fsync(dir_fd)
+            finally:
+                os.close(dir_fd)
+        finally:
+            if fd >= 0:
+                os.close(fd)
+            if tmp.exists():
+                tmp.unlink()
         return
     tmp = path.parent / f".{path.name}.tmp-{os.getpid()}"
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL

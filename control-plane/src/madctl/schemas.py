@@ -14,6 +14,7 @@ SCHEMAS = {
     "activation-record": "activation-record.schema.json",
     "challenge": "challenge.schema.json",
     "codex-attestation": "codex-attestation.schema.json",
+    "orka-review-attestation": "orka-review-attestation.schema.json",
     "qa-evidence": "qa-evidence.schema.json",
     "human-approval": "human-approval.schema.json",
     "machine-approval": "machine-approval.schema.json",

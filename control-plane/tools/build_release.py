@@ -40,17 +40,31 @@ def _copy(source: Path, destination: Path, mode: int) -> None:
     os.utime(destination, (EPOCH, EPOCH), follow_symlinks=False)
 
 
+def _excluded_orka_experiment(relative: Path) -> bool:
+    """Keep experimental Orka modules out of the closed release.
+
+    Apply the exclusion to every path component so a future nested
+    experimental module is also excluded. The operational orka.py
+    module is intentionally not excluded.
+    """
+    return any(part.startswith("orka_") for part in relative.parts)
+
+
 def build_release(source_root: Path, output: Path) -> dict[str, str]:
     source_root = source_root.resolve(strict=True)
     control = source_root / "control-plane"
     if output.exists():
         raise RuntimeError(f"release destination already exists: {output}")
     output.mkdir(parents=True, mode=0o755)
-    for source in sorted((control / "src/madctl").rglob("*")):
+    python_source = control / "src/madctl"
+    for source in sorted(python_source.rglob("*")):
         if source.is_symlink():
             raise RuntimeError(f"release Python source must not be a symlink: {source}")
+        relative = source.relative_to(python_source)
+        if _excluded_orka_experiment(relative):
+            continue
         if source.is_file() and "__pycache__" not in source.parts and source.suffix != ".pyc":
-            _copy(source, output / "python/madctl" / source.relative_to(control / "src/madctl"), 0o444)
+            _copy(source, output / "python/madctl" / relative, 0o444)
     for source in sorted((control / "schemas").rglob("*")):
         if source.is_symlink():
             raise RuntimeError(f"release schema source must not be a symlink: {source}")

@@ -22,6 +22,7 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+exclude = ["madctl.orka_*", "madctl.*.orka_*"]
 
 [tool.setuptools.data-files]
 "mad-release/schemas" = ["schemas/*.json"]
