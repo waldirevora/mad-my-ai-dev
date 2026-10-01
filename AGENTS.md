@@ -17,3 +17,21 @@
 13. Production must not be changed directly by workers.
 14. High risk changes require human approval.
 15. Pixel Agents is a permanent part of the MAD architecture.
+
+## Pre-commit gate
+
+The versioned pre-commit gate is mandatory whenever Git is part of the
+workflow. Run the complete local validation with:
+
+```text
+pre-commit run --all-files --show-diff-on-failure
+```
+
+If a Git commit hook is installed later, its normal commit-time behavior checks
+the staged files. CI repeats the all-files gate and is the authoritative
+shared-branch enforcement.
+
+Do not use `--no-verify`, `SKIP`, hook removal, hook disabling, or configuration
+changes to bypass a failure. A hook-generated modification invalidates prior
+evidence: review the changed bytes and rerun every affected validation. Genuine
+secrets must be removed and rotated, never merely added to the secret baseline.

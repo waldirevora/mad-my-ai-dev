@@ -1,0 +1,5 @@
+-r requirements.txt
+pre-commit==4.6.2
+pytest==8.3.5
+setuptools==68.1.2
+wheel==0.45.1
