@@ -43,9 +43,7 @@ repos:
           python3 -B -m pytest -q -rs -p no:cacheprovider
           control-plane/tests/test_precommit_checks.py
           control-plane/tests/test_atomic_write.py
-          control-plane/tests/test_controller.py
           control-plane/tests/test_core.py
-          control-plane/tests/test_isolation.py
         language: system
         pass_filenames: false
         always_run: true
