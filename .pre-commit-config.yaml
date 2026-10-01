@@ -1,0 +1,49 @@
+minimum_pre_commit_version: "4.6.2"
+default_stages: [pre-commit]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # v6.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-case-conflict
+      - id: check-json
+      - id: check-yaml
+      - id: check-toml
+      - id: debug-statements
+      - id: check-added-large-files
+        args: [--maxkb=500, --enforce-all]
+      - id: detect-private-key
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: 01886c8a910c64595c47f186ca1ffc0b77fa5458  # v1.5.0
+    hooks:
+      - id: detect-secrets
+        name: Detect secrets (check-only)
+        entry: python3 control-plane/tools/precommit_checks.py detect-secrets-check-only
+        args: [--baseline, .secrets.baseline]
+        exclude: ^\.secrets\.baseline$
+
+  - repo: local
+    hooks:
+      - id: mad-repository-checks
+        name: MAD Python compile and repository hygiene
+        entry: python3 control-plane/tools/precommit_checks.py
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: mad-fast-tests
+        name: MAD fast deterministic tests
+        entry: >-
+          env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control-plane/src
+          python3 -B -m pytest -q -rs -p no:cacheprovider
+          control-plane/tests/test_precommit_checks.py
+          control-plane/tests/test_atomic_write.py
+          control-plane/tests/test_core.py
+        language: system
+        pass_filenames: false
+        always_run: true
